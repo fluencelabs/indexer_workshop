@@ -2,7 +2,7 @@
 .DS_Store
 .fluence
 **/node_modules
-Cargo.lock
 **/target/
 .vscode/settings.json
 .repl_history
+**/index.wasm

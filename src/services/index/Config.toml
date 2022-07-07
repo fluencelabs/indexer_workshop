@@ -1,0 +1,14 @@
+modules_dir = "artifacts/"
+
+[[module]]
+    name = 'sqlite3'
+    max_heap_size = "1mb"
+    logger_enabled = true
+
+    [module.wasi]
+    preopened_files = ['/tmp']
+    mapped_dirs = { "tmp" = "/tmp" }
+
+[[module]]
+    name = "index"
+    logger_enabled = true

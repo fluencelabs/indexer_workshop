@@ -1,0 +1,16 @@
+[package]
+name = "index"
+version = "0.1.0"
+authors = ["folex <0xdxdy@gmail.com>"]
+edition = "2018"
+
+[[bin]]
+name = "index"
+path = "src/main.rs"
+
+[dependencies]
+marine-rs-sdk = "0.6.15"
+marine-sqlite-connector = "0.5.2"
+
+[dev-dependencies]
+marine-rs-sdk-test = "0.6.0"

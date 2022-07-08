@@ -1,8 +1,8 @@
 import AnyConsole, Debug, Peer, Srv, Op, Dist, Kademlia, ModuleConfig, PeerId from "@fluencelabs/aqua-lib/builtin.aqua"
 import Ipfs from "@fluencelabs/aqua-ipfs/ipfs.aqua"
 
-import upload, get_multiaddr from "index.aqua"
-import Hash, CID, ServiceID from "services.aqua"
+import upload, get_multiaddr, upload_to_peers, retrieve_index from "index.aqua"
+import Hash, CID, ServiceID, ArrayOp, RecordOp from "services.aqua"
 import Console, ConsoleArray from "console.aqua"
 
 import "deploy.aqua"
@@ -29,31 +29,44 @@ func make_subnet_scenario():
     srv <- LocalServices.get("index")
     services <- deploy_to_peers(neighborhood, srv)
 
+    domain <- create(DOMAIN)
+
+    done: *bool
     for s <- services par:
         service_id = s[0]
         peer_id = s[1]
-        register_to_pinset(DOMAIN, peer_id, service_id)
+        done <- register_to_pinset(domain, peer_id, service_id)
+    join done[ArrayOp.array_length(services) - 1]
+    par Peer.timeout(PARTICLE_TTL / 5, "")
 
     providers <- resolve_pinset(DOMAIN)
-    Console.print("providers:")
-    Console.print(Debug.stringify(providers))
+    Console.print("pinset:")
+    Console.print(Debug.stringify(RecordOp.array_length(providers)))
 
--- func scenario(file: string) -> string:
---     cid <- upload_to_peers(file)
 
---     Console.print("======= done uploading =======")
+func upload_to_subnet(file: string) -> string:
+    providers <- resolve_pinset(DOMAIN)
+    if providers != nil:
+        cid <- upload_to_peers(file, providers)
+    else:
+        Console.print("pizdec")
+    index <- retrieve_index(cid, providers)
+    Console.print("indexed ipfs providers:")
+    Console.print(Debug.stringify(RecordOp.array_length(providers)))
 
---     alive = AliveIPFS.list()
---     to_remove = [alive[0], alive[1], alive[2]]
---     for provider <- to_remove:
---         before <- exists(provider.multiaddr, cid)
---         res <- IpfsClient.remove(provider.multiaddr, cid)
---         after <- exists(provider.multiaddr, cid)
---         L.removal(before, after, provider.peer_id, "")
+    -- Console.print("======= done uploading =======")
 
---     before, after <- update_local_index(cid)
---     Console.print("index before update:")
---     ConsoleProviders.print(before)
---     Console.print("index after update:")
---     ConsoleProviders.print(after)
---     <- "OK"
+    -- alive = AliveIPFS.list()
+    -- to_remove = [alive[0], alive[1], alive[2]]
+    -- for provider <- to_remove:
+    --     before <- exists(provider.multiaddr, cid)
+    --     res <- IpfsClient.remove(provider.multiaddr, cid)
+    --     after <- exists(provider.multiaddr, cid)
+    --     L.removal(before, after, provider.peer_id, "")
+
+    -- before, after <- update_local_index(cid)
+    -- Console.print("index before update:")
+    -- ConsoleProviders.print(before)
+    -- Console.print("index after update:")
+    -- ConsoleProviders.print(after)
+    <- "OK"

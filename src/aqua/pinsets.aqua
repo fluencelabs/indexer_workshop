@@ -9,21 +9,33 @@ import "./services.aqua"
 func pinset_name(domain: string) -> string:
     <- Op.concat_strings(domain, "-pinset")
 
-func register_to_pinset(domain: string, peer_id: PeerId, service_id: ServiceID):
+func create(domain: string) -> ResourceId:
     name = pinset_name(domain)
-    id, error <- createResourceAndRegisterNodeProvider(peer_id, name, "indexer", ?[service_id])
+    id, error <- createResource(name)
 
     if id == nil:
-        ConsoleArray.print(["failed to register", peer_id, service_id, "to resource", Debug.stringify(error)])
+        ConsoleArray.print(["failed to create resource", Debug.stringify(error)])
     else:
-        ConsoleArray.print(["registered", peer_id, service_id, "to resource", Debug.stringify(id)])
+        ConsoleArray.print(["created resource", Debug.stringify(id)])
+
+    <- id!
+
+func register_to_pinset(resource: ResourceId, peer_id: PeerId, service_id: ServiceID) -> bool:
+    success, error <- registerNodeProvider(peer_id, resource, "indexer", ?[service_id])
+
+    if success:
+        ConsoleArray.print(["registered", peer_id, service_id, "to resource", Debug.stringify(success)])
+    else:
+        ConsoleArray.print(["failed to register", peer_id, service_id, "to resource", Debug.stringify(error)])
+
+    <- success
 
 
 func resolve_pinset(domain: string) -> []Record:
     on HOST_PEER_ID:
         name = pinset_name(domain)
         id <- getResourceId(name, INIT_PEER_ID)
-        providers, error <- resolveProviders(id, 1)
+        providers, error <- resolveProviders(id, 3)
 
     if providers == nil:
         ConsoleArray.print(["failed to resolve providers", domain, id, Debug.stringify(error)])

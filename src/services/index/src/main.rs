@@ -1,4 +1,3 @@
-use std::any::Provider;
 use marine_rs_sdk::{marine, WasmLoggerBuilder};
 use marine_rs_sdk::module_manifest;
 use marine_sqlite_connector::Connection;
@@ -82,8 +81,8 @@ pub fn merge(mut providers: Vec<Provider>) -> Vec<Provider> {
 }
 
 #[marine]
-pub fn multi_merge(mut providers: Vec<Vec<Provider>>) -> Vec<Provider> {
-    let mut providers: Vec<Provider> = providers.into_iter().flatten().collect();
+pub fn multi_merge(providers: Vec<Vec<Provider>>) -> Vec<Provider> {
+    let providers: Vec<Provider> = providers.into_iter().flatten().collect();
     merge(providers)
 }
 

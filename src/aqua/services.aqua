@@ -44,6 +44,10 @@ service BoolOp("op"):
 
 service RecordOp("op"):
     array_length(array: []Record) -> u32
+    identity(record: Record) -> Record
+
+service ArrayOp("op"):
+    array_length(array: [][]string) -> u32
 
 
 func wait_for(done: *string, length: u32, time: u32):

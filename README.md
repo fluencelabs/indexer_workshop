@@ -1,3 +1,6 @@
+## Where to start
+Read the [main.aqua](src/aqua/main.aqua)
+
 ## How to run
 ### Create subnet
 ```

@@ -1,0 +1,23 @@
+{
+  "name": "indexer_workshop",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fluencelabs/indexer_workshop.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/fluencelabs/indexer_workshop/issues"
+  },
+  "homepage": "https://github.com/fluencelabs/indexer_workshop#readme",
+  "dependencies": {
+    "@fluencelabs/aqua-lib": "0.5.2",
+    "@fluencelabs/registry": "0.5.5",
+    "@fluencelabs/aqua-ipfs": "0.5.5"
+  }
+}

@@ -1,0 +1,101 @@
+import "@fluencelabs/aqua-lib/builtin.aqua"
+import "@fluencelabs/aqua-ipfs/ipfs.aqua"
+
+import upload, get_multiaddr from "index.aqua"
+
+import "services.aqua"
+import "console.aqua"
+
+
+data LocalModule:
+    name: string
+    path: string
+    preopened_files: []string
+    mapped_dirs: [][]string
+
+data LocalService:
+    name: string
+    modules: []LocalModule
+
+service LocalServices("local_services"):
+    get(name: string) -> LocalService
+
+func service_info() -> LocalService:
+    <- LocalServices.get("index")
+
+service ModuleOp("op"):
+    array_length(modules: []LocalModule) -> u32
+
+func config(m: LocalModule) -> ModuleConfig:
+    preopened: *[]string
+    mapped: *[][]string
+
+    try:
+        preopened <<- m.preopened_files
+    try:
+        mapped <<- m.mapped_dirs
+
+    <- Dist.make_module_config(
+        m.name,
+        nil, nil, nil,
+        preopened,
+        nil,
+        mapped,
+        nil, nil
+    )
+
+func deploy_to_peers(peers: []PeerId, srv: LocalService) -> [][]string:
+    hashes: *Hash
+
+    relay_ipfs <- get_multiaddr(HOST_PEER_ID)
+    on HOST_PEER_ID:
+        for m <- srv.modules par:
+            -- upload wasm module and generate config
+            cid <- upload(relay_ipfs, m.path)
+            cfg <- config(m)
+
+            -- add wasm module to relay module list so it can be deployed
+            get <- Ipfs.get(cid)
+            hash <- Dist.add_module_from_vault(get.path, cfg)
+
+            -- upload wasm module to every peer
+            done: *PeerId
+            for peer <- peers par:
+                on peer:
+                    res <- Ipfs.get_from(cid, relay_ipfs)
+                    Dist.add_module_from_vault(res.path, cfg)
+                    done <<- peer
+
+                    on INIT_PEER_ID via HOST_PEER_ID:
+                        co ConsoleArray.print(["uploaded module to peer", cfg.name, peer, cid])
+
+            -- wait for uploading to complete
+            wait_for(done, Op.array_length(peers), PARTICLE_TTL / 5)
+
+            -- signal that uploading has completed
+            hashes <- Op.concat_strings("hash:", hash)
+
+        -- wait for all modules to upload
+        join hashes[ModuleOp.array_length(srv.modules) - 1]
+
+        on INIT_PEER_ID via HOST_PEER_ID:
+            Console.print("generated module hashes:")
+            ConsoleArray.print(hashes)
+
+    services: *[]string
+    on HOST_PEER_ID:
+        -- generate service blueprint
+        blueprint <- Dist.make_blueprint(srv.name, hashes)
+        -- create a service on every peer
+        for peer <- peers par:
+            on peer:
+                blueprint_id <- Dist.add_blueprint(blueprint)
+                service_id <- Srv.create(blueprint_id)
+                services <<- [service_id, peer]
+                on INIT_PEER_ID via HOST_PEER_ID:
+                    co AnyConsole.print(["created service", service_id, peer])
+
+    join services[Op.array_length(peers) - 1]
+    par Peer.timeout(PARTICLE_TTL / 4, "")
+
+    <- services

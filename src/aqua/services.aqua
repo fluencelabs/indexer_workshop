@@ -1,0 +1,51 @@
+import Peer from "@fluencelabs/aqua-lib/builtin.aqua"
+import Record from "@fluencelabs/registry/registry-service.aqua"
+
+alias PeerId : string
+alias CID : string
+alias Multiaddr : string
+alias Hash : string
+alias ServiceID : string
+
+data Provider:
+    peer_id: string
+    multiaddr: string
+
+service LocalIndex("index"):
+    add(cid: string, peer_id: string, multiaddr: string)
+    remove(cid: string, peer_id: string, multiaddr: string)
+    get(cid: string) -> []Provider
+
+service RemoteIndex("index"):
+    add(cid: string, peer_id: string, multiaddr: string)
+    remove(cid: string, peer_id: string, multiaddr: string)
+    get(cid: string) -> []Provider
+    merge(providers: []Provider) -> []Provider
+    multi_merge(providers: [][]Provider) -> []Provider
+
+service IpfsClient("ipfs_client"):
+    id(multiaddr: string) -> string
+    exists(multiaddr: string, cid: string) -> bool
+    upload(multiaddr: string, path: string) -> string
+    remove(multiaddr: string, cid: string) -> string
+    -- ping(multiaddr: string) -> bool
+
+service AliveIPFS("alive"):
+    add(peer_id: string, multiaddr: string)
+    remove(peer_id: string, multiaddr: string)
+    list() -> []Provider
+    get(peer_id: string) -> ?Provider
+
+service L("log"):
+    removal(before: bool, after: bool, peer: string, res: string)
+
+service BoolOp("op"):
+    array_length(array: []bool) -> u32
+
+service RecordOp("op"):
+    array_length(array: []Record) -> u32
+
+
+func wait_for(done: *string, length: u32, time: u32):
+    join done[length - 1]
+    par Peer.timeout(time, "")

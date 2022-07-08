@@ -1,3 +1,4 @@
+use std::any::Provider;
 use marine_rs_sdk::{marine, WasmLoggerBuilder};
 use marine_rs_sdk::module_manifest;
 use marine_sqlite_connector::Connection;
@@ -41,6 +42,7 @@ pub fn add(cid: String, peer_id: String, multiaddr: String) {
 }
 
 #[marine]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Provider {
     peer_id: String,
     multiaddr: String,
@@ -72,6 +74,19 @@ pub fn delete(cid: String, peer_id: String, multiaddr: String) {
     ).expect("remove");
 }
 
+#[marine]
+pub fn merge(mut providers: Vec<Provider>) -> Vec<Provider> {
+    providers.sort_unstable();
+    providers.dedup();
+    providers
+}
+
+#[marine]
+pub fn multi_merge(mut providers: Vec<Vec<Provider>>) -> Vec<Provider> {
+    let mut providers: Vec<Provider> = providers.into_iter().flatten().collect();
+    merge(providers)
+}
+
 
 // To run tests:
 // cargo test --release
@@ -92,16 +107,19 @@ mod tests {
     fn test_add_get_delete(index: marine_test_env::index::ModuleInterface) {
         let cid = "a".to_string();
         let peer_id = "b".to_string();
+        let peer_id2 = "bb".to_string();
         let multiaddr = "c".to_string();
+        let multiaddr2 = "cc".to_string();
         index.add(cid.clone(), peer_id.clone(), multiaddr.clone());
+        index.add(cid.clone(), peer_id2.clone(), multiaddr2.clone());
 
         let res = index.get(cid.clone());
-        assert_eq!(res.len(), 1);
+        assert_eq!(res.len(), 2);
         assert_eq!(res[0].peer_id, peer_id);
         assert_eq!(res[0].multiaddr, multiaddr);
 
         index.delete(cid.clone(), peer_id, multiaddr);
         let res = index.get(cid.clone());
-        assert_eq!(res.len(), 0);
+        assert_eq!(res.len(), 1);
     }
 }

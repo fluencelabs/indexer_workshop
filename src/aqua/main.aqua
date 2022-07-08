@@ -1,0 +1,59 @@
+import AnyConsole, Debug, Peer, Srv, Op, Dist, Kademlia, ModuleConfig, PeerId from "@fluencelabs/aqua-lib/builtin.aqua"
+import Ipfs from "@fluencelabs/aqua-ipfs/ipfs.aqua"
+
+import upload, get_multiaddr from "index.aqua"
+import Hash, CID, ServiceID from "services.aqua"
+import Console, ConsoleArray from "console.aqua"
+
+import "deploy.aqua"
+import "pinsets.aqua"
+
+--  make_module_config(
+--    name: string,
+--    mem_pages_count: ?u32,
+--    max_heap_size: ?string,
+--    logger_enabled: ?bool,
+--    preopened_files: ?[]string,
+--    envs: ?Pairs,
+--    mapped_dirs: ?Pairs,
+--    mounted_binaries: ?Pairs,
+--    logging_mask: ?i32
+---  ) -> ModuleConfig
+
+const DOMAIN = "indexer-example"
+
+func make_subnet_scenario():
+    on HOST_PEER_ID:
+        neighborhood <- Kademlia.neighborhood(HOST_PEER_ID, nil, nil)
+
+    srv <- LocalServices.get("index")
+    services <- deploy_to_peers(neighborhood, srv)
+
+    for s <- services par:
+        service_id = s[0]
+        peer_id = s[1]
+        register_to_pinset(DOMAIN, peer_id, service_id)
+
+    providers <- resolve_pinset(DOMAIN)
+    Console.print("providers:")
+    Console.print(Debug.stringify(providers))
+
+-- func scenario(file: string) -> string:
+--     cid <- upload_to_peers(file)
+
+--     Console.print("======= done uploading =======")
+
+--     alive = AliveIPFS.list()
+--     to_remove = [alive[0], alive[1], alive[2]]
+--     for provider <- to_remove:
+--         before <- exists(provider.multiaddr, cid)
+--         res <- IpfsClient.remove(provider.multiaddr, cid)
+--         after <- exists(provider.multiaddr, cid)
+--         L.removal(before, after, provider.peer_id, "")
+
+--     before, after <- update_local_index(cid)
+--     Console.print("index before update:")
+--     ConsoleProviders.print(before)
+--     Console.print("index after update:")
+--     ConsoleProviders.print(after)
+--     <- "OK"

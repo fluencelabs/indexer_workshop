@@ -1,6 +1,7 @@
 import { Multiaddr, protocols } from 'multiaddr';
 import { create, globSource, CID } from 'ipfs-http-client';
 import { existsSync, readFileSync } from 'fs';
+import { resolve } from 'path';
 
 async function client(multiaddr) {
     let rpcMaddr = new Multiaddr(multiaddr).decapsulateCode(protocols.names.p2p.code);
@@ -14,7 +15,8 @@ const alive = new Set();
 export async function plugins() {
     return {
         ipfs_client: {
-            upload: async (multiaddr, path) => {
+            upload: async (multiaddr, rel_path) => {
+                const path = resolve(rel_path);
                 if (!existsSync(path)) { throw `file ${path} doesn't exist` };
                 const data = readFileSync(path);
                 const ipfs = await client(multiaddr);

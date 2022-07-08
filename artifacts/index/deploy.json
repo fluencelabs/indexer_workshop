@@ -1,0 +1,17 @@
+{
+    "index": {
+        "modules": [
+            {
+                "name": "sqlite3",
+                "path": "artifacts/index/sqlite3.wasm",
+                "preopened_files": ["./tmp"],
+                "mapped_dirs": [["tmp", "/tmp"]]
+            },
+            {
+                "name": "index",
+                "path": "artifacts/index/index.wasm",
+                "logger_enabled": true
+            }
+        ]
+    }
+}

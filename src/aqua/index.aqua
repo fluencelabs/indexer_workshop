@@ -1,0 +1,113 @@
+import Kademlia, Peer, Op from "@fluencelabs/aqua-lib/builtin.aqua"
+import "@fluencelabs/aqua-ipfs/ipfs-api.aqua"
+import "@fluencelabs/aqua-ipfs/ipfs.aqua"
+
+-- import Record from "@fluencelabs/registry/resources-api.aqua"
+import Record from "@fluencelabs/registry/registry-service.aqua"
+
+import "services.aqua"
+import "console.aqua"
+
+-- retrieve IPFS node address
+func get_multiaddr(peer_id: string) -> string:
+    result <- get_external_api_multiaddr(peer_id)
+    <- result.multiaddr
+
+-- upload via local ipfs-client
+func upload(multiaddr: string, path: string) -> string:
+    on INIT_PEER_ID via HOST_PEER_ID:
+        cid <- IpfsClient.upload(multiaddr, path)
+        <- cid
+
+-- check if exists via local ipfs-client
+func exists(multiaddr: string, cid: string) -> bool:
+    on INIT_PEER_ID via HOST_PEER_ID:
+        does <- IpfsClient.exists(multiaddr, cid)
+        <- does
+
+-- purge nodes from index if it doesn't contain the file anymore
+func update_local_index(cid: string) -> []Provider, []Provider:
+    providers <- LocalIndex.get(cid)
+    for provider <- providers:
+        e <- IpfsClient.exists(provider.multiaddr, cid)
+        if e == false:
+            LocalIndex.remove(cid, provider.peer_id, provider.multiaddr)
+    providers_after <- LocalIndex.get(cid)
+    <- providers, providers_after
+
+func update_remote_index(cid: string, pinset: []Record) -> []Provider, []Provider:
+    provider_sets: *[]Provider
+    alive: *Record
+    for r <- pinset par:
+        on r.peer_id via r.relay_id:
+            RemoteIndex r.service_id!
+            provider_sets <- RemoteIndex.get(cid)
+            alive <<- r
+    join provider_sets[RecordOp.array_length(pinset) - 1]
+    par Peer.timeout(PARTICLE_TTL / 4, "")
+
+    -- take random alive peer, and use it to deduplicate provider_sets
+    someone = alive[0]
+    on someone.peer_id via someone.relay_id:
+        RemoteIndex someone.service_id!
+        providers <- RemoteIndex.multi_merge(provider_sets)
+
+    for provider <- providers:
+        e <- IpfsClient.exists(provider.multiaddr, cid)
+        if e == false:
+            LocalIndex.remove(cid, provider.peer_id, provider.multiaddr)
+    providers_after <- LocalIndex.get(cid)
+    <- providers, providers_after
+
+-- upload file to all nodes in the Kademlia neighborhood
+func upload_to_peers(file: string, peers: []PeerId) -> string:
+    on HOST_PEER_ID:
+        cid <- upload(get_multiaddr(HOST_PEER_ID), file)
+
+    Console.print("===================== relay done =====================")
+
+    alive: *string
+    for peer <- peers par:
+        maddr <- get_multiaddr(peer)
+        AliveIPFS.add(peer, maddr)
+        alive <<- peer
+
+    join alive[Op.array_length(peers) - 1]
+    par Peer.timeout(PARTICLE_TTL / 2, "")
+
+    uploaded: *string
+    for peer <- alive par:
+        provider <- AliveIPFS.get(peer)
+        maddr = provider!.multiaddr
+        upload(maddr, file)
+        if exists(maddr, cid):
+            LocalIndex.add(cid, peer, maddr)
+            uploaded <<- peer
+        else:
+            ConsoleArray.print(["won't add provider to index!!!", peer, maddr])
+
+    if Op.array_length(alive) > 0:
+        join uploaded[Op.array_length(alive) - 1]
+        par Peer.timeout(PARTICLE_TTL / 4, "")
+
+    Console.print("Alive:")
+    ConsoleProviders.print(AliveIPFS.list())
+    Console.print("Uploaded:")
+    ConsoleArray.print(uploaded)
+
+    <- cid
+
+-- returns CID and Multiaddr
+func upload_to_peer(peer: PeerId, file: string) -> CID:
+    maddr <- get_multiaddr(peer)
+    cid <- upload(maddr, file)
+    <- cid
+
+func remove_from_neigh(cid: string) -> string:
+    on HOST_PEER_ID:
+        neighborhood <- Kademlia.neighborhood(cid, nil, nil)
+
+    for peer <- [neighborhood[0], neighborhood[3], neighborhood[5]]:
+        multiaddr <- get_multiaddr(peer)
+        res <- IpfsClient.remove(multiaddr, cid)
+    <- "OK"

@@ -3,188 +3,32 @@ import "@fluencelabs/registry/resources-api.aqua"
 import "@fluencelabs/registry/registry-service.aqua"
 import "@fluencelabs/aqua-ipfs/ipfs-api.aqua"
 import "@fluencelabs/aqua-ipfs/ipfs.aqua"
-
-data Provider:
-    peer_id: string
-    multiaddr: string
-
-service Index("index"):
-    add(cid: string, peer_id: string, multiaddr: string)
-    remove(cid: string, peer_id: string, multiaddr: string)
-    get(cid: string) -> []Provider
-
-service IpfsClient("ipfs_client"):
-    id(multiaddr: string) -> string
-    exists(multiaddr: string, cid: string) -> bool
-    upload(multiaddr: string, path: string) -> string
-    remove(multiaddr: string, cid: string) -> string
-    -- ping(multiaddr: string) -> bool
-
-service AliveIPFS("alive"):
-    add(peer_id: string, multiaddr: string)
-    remove(peer_id: string, multiaddr: string)
-    list() -> []Provider
-    get(peer_id: string) -> ?Provider
-
-service Console("run-console"):
-    print(msg: string)
-
-service ConsoleResource("run-console"):
-    print(msg: ?ResourceId)
-
-service ConsoleErr("run-console"):
-    print(err: *Error)
-
-service ConsoleRecords("run-console"):
-    print(records: []Record)
-
-service ConsoleProviders("run-console"):
-    print(providers: []Provider)
-
-service ConsoleArray("run-console"):
-    print(msgs: []string)
-
-service ConsoleNum("run-console"):
-    print(n: u32)
-
+import "./console.aqua"
+import "./services.aqua"
 
 func pinset_name(domain: string) -> string:
     <- Op.concat_strings(domain, "-pinset")
 
-func register_pinset(domain: string, ipfs_multiaddr: string):
+func register_to_pinset(domain: string, peer_id: PeerId, service_id: ServiceID):
     name = pinset_name(domain)
-    id, error <- createResourceAndRegisterProvider(name, ipfs_multiaddr, nil)
+    id, error <- createResourceAndRegisterNodeProvider(peer_id, name, "indexer", ?[service_id])
 
     if id == nil:
-        ConsoleErr.print(error)
+        ConsoleArray.print(["failed to register", peer_id, service_id, "to resource", Debug.stringify(error)])
     else:
-        ConsoleResource.print(id)
+        ConsoleArray.print(["registered", peer_id, service_id, "to resource", Debug.stringify(id)])
 
-func resolve_pinset(domain: string):
+
+func resolve_pinset(domain: string) -> []Record:
     on HOST_PEER_ID:
         name = pinset_name(domain)
         id <- getResourceId(name, INIT_PEER_ID)
         providers, error <- resolveProviders(id, 1)
 
     if providers == nil:
-        ConsoleErr.print(error)
-    else:
-        ConsoleRecords.print(providers)
+        ConsoleArray.print(["failed to resolve providers", domain, id, Debug.stringify(error)])
 
-func get_multiaddr(peer_id: string) -> string:
-    result <- get_external_api_multiaddr(peer_id)
-    <- result.multiaddr
-
-func id(peer_id: string) -> string:
-    maddr <- get_multiaddr(peer_id)
-    <- IpfsClient.id(maddr)
-
-func update_index(cid: string) -> []Provider, []Provider:
-    providers <- Index.get(cid)
-    for provider <- providers:
-        e <- IpfsClient.exists(provider.multiaddr, cid)
-        if e == false:
-            Index.remove(cid, provider.peer_id, provider.multiaddr)
-    providers_after <- Index.get(cid)
-    <- providers, providers_after
-
-func upload(multiaddr: string, path: string) -> string:
-    on INIT_PEER_ID via HOST_PEER_ID:
-        cid <- IpfsClient.upload(multiaddr, path)
-        <- cid
-
-func exists(multiaddr: string, cid: string) -> bool:
-    on INIT_PEER_ID via HOST_PEER_ID:
-        does <- IpfsClient.exists(multiaddr, cid)
-        <- does
-
-func upload_to_host(file: string, known_cid: string) -> bool:
-
-    on HOST_PEER_ID:
-        maddr <- get_multiaddr(HOST_PEER_ID)
-        before <- exists(maddr, known_cid)
-
-    if before:
-        ConsoleArray.print(["file already exists"])
-    else:
-        ConsoleArray.print(["file doesn't yet exists"])
-
-    on HOST_PEER_ID:
-        cid <- upload(maddr, file)
-        saw <- exists(maddr, cid)
-    <- saw
-
-func upload_to_neighborhood(file: string) -> string:
-    on HOST_PEER_ID:
-        cid <- upload(get_multiaddr(HOST_PEER_ID), file)
-        neighborhood <- Kademlia.neighborhood(cid, nil, nil)
-
-    Console.print("===================== relay done =====================")
-
-    neighs = neighborhood --[neighborhood[0], neighborhood[1]]
-    alive: *string
-    for peer <- neighs par:
-        maddr <- get_multiaddr(peer)
-        AliveIPFS.add(peer, maddr)
-        alive <<- peer
-
-    join alive[Op.array_length(neighs) - 1]
-    par Peer.timeout(PARTICLE_TTL / 2, "")
-
-    uploaded: *string
-    for peer <- alive par:
-        provider <- AliveIPFS.get(peer)
-        maddr = provider!.multiaddr
-        upload(maddr, file)
-        if exists(maddr, cid):
-            Index.add(cid, peer, maddr)
-            uploaded <<- peer
-        else:
-            ConsoleArray.print(["won't add provider to index!!!", peer, maddr])
-
-    if Op.array_length(alive) > 0:
-        join uploaded[Op.array_length(alive) - 1]
-        par Peer.timeout(PARTICLE_TTL / 4, "")
-
-    Console.print("Alive:")
-    ConsoleProviders.print(AliveIPFS.list())
-    Console.print("Uploaded:")
-    ConsoleArray.print(uploaded)
-
-    <- cid
-
-service L("log"):
-    removal(before: bool, after: bool, peer: string, res: string)
-
-func scenario(file: string) -> string:
-    cid <- upload_to_neighborhood(file)
-
-    Console.print("======= done uploading =======")
-
-    alive = AliveIPFS.list()
-    to_remove = [alive[0], alive[1], alive[2]]
-    for provider <- to_remove:
-        before <- exists(provider.multiaddr, cid)
-        res <- IpfsClient.remove(provider.multiaddr, cid)
-        after <- exists(provider.multiaddr, cid)
-        L.removal(before, after, provider.peer_id, "")
-
-    before, after <- update_index(cid)
-    Console.print("index before update:")
-    ConsoleProviders.print(before)
-    Console.print("index after update:")
-    ConsoleProviders.print(after)
-    <- "OK"
-
-func remove_from_neigh(cid: string) -> string:
-    on HOST_PEER_ID:
-        neighborhood <- Kademlia.neighborhood(cid, nil, nil)
-
-    for peer <- [neighborhood[0], neighborhood[3], neighborhood[5]]:
-        multiaddr <- get_multiaddr(peer)
-        res <- IpfsClient.remove(multiaddr, cid)
-    <- "OK"
-
+    <- providers
 
 
 -- 1. deploy index service

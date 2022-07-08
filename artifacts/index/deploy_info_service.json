@@ -1,0 +1,22 @@
+{
+    "name": "DeployInfo",
+    "serviceId": "deploy_info",
+    "functions": [
+      {
+        "name": "modules",
+        "result":
+            [
+                {
+                    "name": "sqlite3",
+                    "path": "artifacts/sqlite3.wasm",
+                    "preopened_files": ["./tmp"],
+                    "mapped_dirs": [["tmp", "/tmp"]]
+                },
+                {
+                    "name": "index",
+                    "path": "artifacts/index.wasm"
+                }
+            ]
+      }
+    ]
+}

@@ -1,0 +1,24 @@
+import "@fluencelabs/registry/resources-api.aqua"
+import "@fluencelabs/registry/registry-service.aqua"
+import "./services.aqua"
+
+service Console("run-console"):
+    print(msg: string)
+
+service ConsoleResource("run-console"):
+    print(msg: ?ResourceId)
+
+service ConsoleErr("run-console"):
+    print(err: *Error)
+
+service ConsoleRecords("run-console"):
+    print(records: []Record)
+
+service ConsoleProviders("run-console"):
+    print(providers: []Provider)
+
+service ConsoleArray("run-console"):
+    print(msgs: []string)
+
+service ConsoleNum("run-console"):
+    print(n: u32)

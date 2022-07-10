@@ -2,8 +2,8 @@ import Debug, Peer, Srv, Op, Dist, Kademlia, ModuleConfig, PeerId from "@fluence
 import Ipfs from "@fluencelabs/aqua-ipfs/ipfs.aqua"
 import Record from "@fluencelabs/registry/registry-service.aqua"
 
-import upload, get_multiaddr, upload_to_peers, retrieve_index from "index.aqua"
-import Hash, CID, ServiceID, ArrayOp, RecordOp from "services.aqua"
+import upload, get_multiaddr, upload_to_peers, retrieve_index, repair_from_index, whos_absent from "index.aqua"
+import Hash, CID, ServiceID, ArrayOp, RecordOp, ProviderOp from "services.aqua"
 import Console, ConsoleArray from "console.aqua"
 
 import "deploy.aqua"
@@ -44,11 +44,27 @@ func upload_to_subnet(file: string):
 
     index <- retrieve_index(cid, providers)
     Console.print("indexed ipfs providers:")
-    Console.print(Debug.stringify(RecordOp.array_length(providers)))
+    Console.print(Debug.stringify(ProviderOp.array_length(index)))
+    Console.print(Debug.stringify(index))
 
 func get_domain_index(cid: string):
+    Console.print(cid)
     providers <- resolve_pinset(DOMAIN)
     index <- retrieve_index(cid, providers)
     Console.print("indexed ipfs providers:")
-    for prov <- providers:
-        Console.print(Debug.stringify([prov.peer_id, prov.service_id!, prov.timestamp_created]))
+    Console.print(Debug.stringify(index))
+    for prov <- index:
+        Console.print(Debug.stringify([prov.peer_id, prov.multiaddr]))
+
+func repair(cid: string):
+    Console.print(cid)
+    providers <- resolve_pinset(DOMAIN)
+    repair_from_index(cid, providers)
+
+func absent(cid: string):
+    Console.print(cid)
+    providers <- resolve_pinset(DOMAIN)
+    index <- retrieve_index(cid, providers)
+    absent, present <- whos_absent(cid, index)
+    Console.print("absent:")
+    Console.print(Debug.stringify(absent))

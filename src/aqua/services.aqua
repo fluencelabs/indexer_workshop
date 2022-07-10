@@ -43,6 +43,9 @@ service RecordOp("op"):
 service ArrayOp("op"):
     array_length(array: [][]string) -> u32
 
+service ProviderOp("op"):
+    array_length(array: []Provider) -> u32
+
 func wait_for(done: *string, length: u32, time: u32):
     join done[length - 1]
     par Peer.timeout(time, "")

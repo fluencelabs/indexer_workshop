@@ -34,15 +34,15 @@ func update_local_index(cid: string) -> []Provider, []Provider:
     providers_after <- LocalIndex.get(cid)
     <- providers, providers_after
 
-func retrieve_index(cid: string, pinset: []Record) -> []Provider:
+func retrieve_index(cid: string, subnet: []Record) -> []Provider:
     provider_sets: *[]Provider
     alive: *Record
-    for r <- pinset par:
-        on r.peer_id via r.relay_id:
-            RemoteIndex r.service_id!
+    for peer <- subnet par:
+        on peer.peer_id via peer.relay_id:
+            RemoteIndex peer.service_id!
             provider_sets <- RemoteIndex.get(cid)
-            alive <<- r
-    join provider_sets[RecordOp.array_length(pinset) - 1]
+            alive <<- peer
+    join provider_sets[RecordOp.array_length(subnet) - 1]
     par Peer.timeout(PARTICLE_TTL / 4, "")
 
     -- take random alive peer, and use it to deduplicate provider_sets
@@ -53,15 +53,68 @@ func retrieve_index(cid: string, pinset: []Record) -> []Provider:
 
     <- providers
 
-func update_remote_index(cid: string, pinset: []Record) -> []Provider, []Provider:
-    providers <- retrieve_index(cid, pinset)
-
+-- returns absent and present
+func whos_absent(cid: string, providers: []Provider) -> []Provider, []Provider:
+    absent: *Provider
+    present: *Provider
     for provider <- providers:
         e <- IpfsClient.exists(provider.multiaddr, cid)
-        if e == false:
-            LocalIndex.remove(cid, provider.peer_id, provider.multiaddr)
-    providers_after <- LocalIndex.get(cid)
+        if e:
+            present <<- provider
+        else:
+            absent <<- provider
+    <- absent, present
+
+-- purge from index all nodes who lost the file
+func update_remote_index(cid: string, subnet: []Record) -> []Provider, []Provider:
+    providers <- retrieve_index(cid, subnet)
+    absent, present <- whos_absent(cid, providers)
+
+    -- remove absent from index
+    for s <- subnet par:
+        on s.peer_id via s.relay_id:
+            RemoteIndex s.service_id!
+            for a <- absent par:
+                RemoteIndex.remove(cid, a.peer_id, a.multiaddr)
+
+    providers_after <- retrieve_index(cid, subnet)
     <- providers, providers_after
+
+-- replicate file to all nodes who has lost it
+func repair_from_index(cid: string, subnet: []Record):
+    providers <- retrieve_index(cid, subnet)
+
+    statuses: *[]string
+    absent, present <- whos_absent(cid, providers)
+    absents = ProviderOp.array_length(absent)
+    timeout = PARTICLE_TTL / 2 / absents
+    for s <- subnet par:
+        on s.peer_id via s.relay_id:
+            RemoteIndex s.service_id!
+            for a <- absent par:
+                success: *bool
+                for p <- present par:
+                    on a.peer_id:
+                        res <- Ipfs.get_from(cid, p.multiaddr)
+                        if res.success:
+                            Ipfs.put(res.path)
+                            success <<- true
+
+                status: *string
+                join success[0] -- wait for at least one success
+                par status <- Peer.timeout(timeout, "timed out")
+                status <<- "FAILED"
+                statuses <<- [a.peer_id, status[0]]
+
+    join statuses[ProviderOp.array_length(absent)]
+    par Peer.timeout(PARTICLE_TTL / 3, "")
+
+    -- absent_after, present_after <- whos_absent(cid, providers)
+    -- -- now_absents <- ProviderOp.array_length(absent_after)
+    -- Console.print("was absent:")
+    -- Console.print(Debug.stringify(absents))
+    -- Console.print("now absent:")
+    -- Console.print(Debug.stringify(absent_after))
 
 -- upload file to all nodes in the Kademlia neighborhood
 func upload_to_peers(file: string, providers: []Record) -> string:

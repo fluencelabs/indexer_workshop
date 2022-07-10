@@ -68,45 +68,30 @@ func upload_to_peers(file: string, providers: []Record) -> string:
     on HOST_PEER_ID:
         cid <- upload(get_multiaddr(HOST_PEER_ID), file)
 
-    Console.print("===================== relay done =====================")
-
-    alive: *string
+    uploaded: *[]string
     for p <- providers par:
         maddr <- get_multiaddr(p.peer_id)
-        AliveIPFS.add(p.peer_id, maddr)
-        alive <<- p.peer_id
-
-    join alive[RecordOp.array_length(providers) - 1]
-    par Peer.timeout(PARTICLE_TTL / 2, "")
-
-    uploaded: *[]string
-    for peer <- alive par:
-        provider <- AliveIPFS.get(peer)
-        maddr = provider!.multiaddr
         upload(maddr, file)
         if exists(maddr, cid):
-            uploaded <<- [peer, maddr]
+            uploaded <<- [p.peer_id, maddr]
         else:
-            ConsoleArray.print(["upload failed", peer, maddr])
+            ConsoleArray.print(["upload failed", p.peer_id, maddr])
 
-    if Op.array_length(alive) > 0:
-        join uploaded[Op.array_length(alive) - 1]
-        par Peer.timeout(PARTICLE_TTL / 4, "")
+    join uploaded[ArrayOp.array_length(uploaded) - 1]
+    par Peer.timeout(PARTICLE_TTL / 2, "")
 
-        done: *bool
-        for p <- providers par:
-            on p.peer_id via p.relay_id:
-                RemoteIndex p.service_id!
-                for u <- uploaded:
-                    peer_id = u[0]
-                    maddr = u[1]
-                    RemoteIndex.add(cid, peer_id, maddr)
-                    done <<- true
-        join done[RecordOp.array_length(providers) - 1]
-        par Peer.timeout(PARTICLE_TTL / 8, "")
+    done: *bool
+    for p <- providers par:
+        on p.peer_id via p.relay_id:
+            RemoteIndex p.service_id!
+            for u <- uploaded:
+                peer_id = u[0]
+                maddr = u[1]
+                RemoteIndex.add(cid, peer_id, maddr)
+                done <<- true
+    join done[RecordOp.array_length(providers) - 1]
+    par Peer.timeout(PARTICLE_TTL / 8, "")
 
-    Console.print("Alive:")
-    ConsoleProviders.print(AliveIPFS.list())
     Console.print("Uploaded:")
     Console.print(Debug.stringify(uploaded))
 

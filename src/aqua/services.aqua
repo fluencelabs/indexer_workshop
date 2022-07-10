@@ -30,12 +30,6 @@ service IpfsClient("ipfs_client"):
     remove(multiaddr: string, cid: string) -> string
     -- ping(multiaddr: string) -> bool
 
-service AliveIPFS("alive"):
-    add(peer_id: string, multiaddr: string)
-    remove(peer_id: string, multiaddr: string)
-    list() -> []Provider
-    get(peer_id: string) -> ?Provider
-
 service L("log"):
     removal(before: bool, after: bool, peer: string, res: string)
 
@@ -48,7 +42,6 @@ service RecordOp("op"):
 
 service ArrayOp("op"):
     array_length(array: [][]string) -> u32
-
 
 func wait_for(done: *string, length: u32, time: u32):
     join done[length - 1]

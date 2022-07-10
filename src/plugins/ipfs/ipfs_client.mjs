@@ -59,25 +59,6 @@ export async function plugins() {
                         throw err;
                     }
                 }
-                // console.dir(result);
-                // // await result.then(wtf => console.dir(wtf)).catch(err => console.dir(err));
-                // let exists;
-                // try {
-                //     console.log("exists result", result);
-                //     for await (let r of result) {
-                //         console.log("exists", r);
-                //     };
-                //     exists = true
-                // } catch (err) {
-                //     if (err.name && err.name == 'TimeoutError') {
-                //         // treat TimeoutError as "not exists"
-                //         exists = false;
-                //     } else {
-                //         // throw all other errors
-                //         throw err;
-                //     }
-                // }
-                // return exists;
                 return exists;
             },
             remove: async (multiaddr, cid) => {
@@ -123,23 +104,6 @@ export async function plugins() {
                         index.set(cid, set);
                     }
                 }
-            }
-        },
-        alive: {
-            add: (peer_id, multiaddr) => {
-                alive.add({ peer_id, multiaddr });
-            },
-            remove: (peer_id, multiaddr) => {
-                alive.delete({ peer_id, multiaddr })
-            },
-            list: () => { return Array.from(alive) },
-            get: (peer_id) => {
-                for (const p of alive) {
-                    if (p.peer_id === peer_id) {
-                        return [p]
-                    }
-                }
-                return []
             }
         },
         log: {

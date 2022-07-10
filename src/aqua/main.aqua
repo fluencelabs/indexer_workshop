@@ -52,7 +52,7 @@ func get_domain_index(cid: string):
     providers <- resolve_pinset(DOMAIN)
     index <- retrieve_index(cid, providers)
     Console.print("indexed ipfs providers:")
-    Console.print(Debug.stringify(index))
+    Console.print(Debug.stringify(ProviderOp.array_length(index)))
     for prov <- index:
         Console.print(Debug.stringify([prov.peer_id, prov.multiaddr]))
 

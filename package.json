@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/fluencelabs/indexer_workshop#readme",
   "dependencies": {
+    "@fluencelabs/aqua": "0.7.4-329",
     "@fluencelabs/aqua-lib": "0.5.2",
     "@fluencelabs/registry": "0.5.5",
     "@fluencelabs/aqua-ipfs": "0.5.5"

@@ -4,12 +4,39 @@ Read the [main.aqua](src/aqua/main.aqua)
 ## How to run
 ### Create subnet
 ```
- aqua run --verbose --timeout 60000 --log-level 'aquavm=off' -i src/aqua/ -f 'make_subnet_scenario()' --addr stage-02 --sk 'I8Sc2Nrd3qk0+l9yeuVPGv54cfOBFCKx9Ch0dOZ1MQ4=' --plugin src/plugins
+npm run subnet
 ```
 
-### Upload to subnet and retrieve index
-Mind to replace the file path (`'/Users/folex/package-lock.json'`) with a correct one. Any file will do, though big files may cause timeouts.
+### Upload to subnet
+```
+FILE="$(pwd)/package-lock.json" npm run upload
+```
+
+### Get index
+Copy the CID from logs of `upload`, and paste it as `CID=`
 
 ```
-aqua run --timeout 30000 --log-level 'aquavm=off'  -i src/aqua -f 'upload_to_subnet('/Users/folex/package-lock.json')' --addr stage-02 --sk 'I8Sc2Nrd3qk0+l9yeuVPGv54cfOBFCKx9Ch0dOZ1MQ4=' --plugin src/plugins
+CID=QmdQepGdyPro8GQsEUs4Ep8fZ1G1HsPNHAuFNRCEiC3ahY npm run get_index
+```
+
+### Unpin file from some nodes
+```
+ipfs --api "/ip4/134.209.186.43/tcp/5002/p2p/12D3KooWNWW5rX9QWSfsHJZVhuKyUb7rPKDvBNqyCuK21JmjyGPt" pin rm QmdQepGdyPro8GQsEUs4Ep8fZ1G1HsPNHAuFNRCEiC3ahY
+
+ipfs --api "/ip4/134.209.186.43/tcp/5005/p2p/12D3KooWHtjVS2LSKpQsFFbNxPaLTAV8Si2LiohkK2CrQsyJymMX" pin rm QmdQepGdyPro8GQsEUs4Ep8fZ1G1HsPNHAuFNRCEiC3ahY
+```
+
+### Check absent
+```
+CID=QmdQepGdyPro8GQsEUs4Ep8fZ1G1HsPNHAuFNRCEiC3ahY npm run absent
+```
+
+### Run repair
+```
+CID=QmdQepGdyPro8GQsEUs4Ep8fZ1G1HsPNHAuFNRCEiC3ahY npm run repair
+```
+
+### Check absent again
+```
+CID=QmdQepGdyPro8GQsEUs4Ep8fZ1G1HsPNHAuFNRCEiC3ahY npm run absent
 ```

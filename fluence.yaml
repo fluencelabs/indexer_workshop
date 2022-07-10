@@ -1,6 +1,0 @@
-# yaml-language-server: $schema=.fluence/schemas/fluence.json
-
-version: 0
-services:
-  - name: index
-    count: 3

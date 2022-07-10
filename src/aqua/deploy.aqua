@@ -93,7 +93,7 @@ func deploy_to_peers(peers: []PeerId, srv: LocalService) -> [][]string:
                 service_id <- Srv.create(blueprint_id)
                 services <<- [service_id, peer]
                 on INIT_PEER_ID via HOST_PEER_ID:
-                    co AnyConsole.print(["created service", service_id, peer])
+                    co ConsoleArray.print(["created service", service_id, peer])
 
     join services[Op.array_length(peers) - 1]
     par Peer.timeout(PARTICLE_TTL / 4, "")

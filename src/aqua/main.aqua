@@ -1,5 +1,6 @@
-import AnyConsole, Debug, Peer, Srv, Op, Dist, Kademlia, ModuleConfig, PeerId from "@fluencelabs/aqua-lib/builtin.aqua"
+import Debug, Peer, Srv, Op, Dist, Kademlia, ModuleConfig, PeerId from "@fluencelabs/aqua-lib/builtin.aqua"
 import Ipfs from "@fluencelabs/aqua-ipfs/ipfs.aqua"
+import Record from "@fluencelabs/registry/registry-service.aqua"
 
 import upload, get_multiaddr, upload_to_peers, retrieve_index from "index.aqua"
 import Hash, CID, ServiceID, ArrayOp, RecordOp from "services.aqua"
@@ -8,26 +9,11 @@ import Console, ConsoleArray from "console.aqua"
 import "deploy.aqua"
 import "pinsets.aqua"
 
---  make_module_config(
---    name: string,
---    mem_pages_count: ?u32,
---    max_heap_size: ?string,
---    logger_enabled: ?bool,
---    preopened_files: ?[]string,
---    envs: ?Pairs,
---    mapped_dirs: ?Pairs,
---    mounted_binaries: ?Pairs,
---    logging_mask: ?i32
----  ) -> ModuleConfig
-
 const DOMAIN = "indexer-example"
 
-func make_subnet_scenario():
-    on HOST_PEER_ID:
-        neighborhood <- Kademlia.neighborhood(HOST_PEER_ID, nil, nil)
-
+func make_subnet(peers: []PeerId):
     srv <- LocalServices.get("index")
-    services <- deploy_to_peers(neighborhood, srv)
+    services <- deploy_to_peers(peers, srv)
 
     domain <- create(DOMAIN)
 
@@ -43,30 +29,26 @@ func make_subnet_scenario():
     Console.print("pinset:")
     Console.print(Debug.stringify(RecordOp.array_length(providers)))
 
+func make_subnet_from_neighs():
+    on HOST_PEER_ID:
+        neighborhood <- Kademlia.neighborhood(HOST_PEER_ID, nil, nil)
 
-func upload_to_subnet(file: string) -> string:
+    make_subnet(neighborhood)
+
+func upload_to_subnet(file: string):
     providers <- resolve_pinset(DOMAIN)
     if providers != nil:
         cid <- upload_to_peers(file, providers)
     else:
-        Console.print("pizdec")
+        Console.print("No providers found :(")
+
     index <- retrieve_index(cid, providers)
     Console.print("indexed ipfs providers:")
     Console.print(Debug.stringify(RecordOp.array_length(providers)))
 
-    -- Console.print("======= done uploading =======")
-
-    -- alive = AliveIPFS.list()
-    -- to_remove = [alive[0], alive[1], alive[2]]
-    -- for provider <- to_remove:
-    --     before <- exists(provider.multiaddr, cid)
-    --     res <- IpfsClient.remove(provider.multiaddr, cid)
-    --     after <- exists(provider.multiaddr, cid)
-    --     L.removal(before, after, provider.peer_id, "")
-
-    -- before, after <- update_local_index(cid)
-    -- Console.print("index before update:")
-    -- ConsoleProviders.print(before)
-    -- Console.print("index after update:")
-    -- ConsoleProviders.print(after)
-    <- "OK"
+func get_domain_index(cid: string):
+    providers <- resolve_pinset(DOMAIN)
+    index <- retrieve_index(cid, providers)
+    Console.print("indexed ipfs providers:")
+    for prov <- providers:
+        Console.print(Debug.stringify([prov.peer_id, prov.service_id!, prov.timestamp_created]))

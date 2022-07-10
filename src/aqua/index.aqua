@@ -2,7 +2,6 @@ import Kademlia, Peer, Op, Debug from "@fluencelabs/aqua-lib/builtin.aqua"
 import "@fluencelabs/aqua-ipfs/ipfs-api.aqua"
 import "@fluencelabs/aqua-ipfs/ipfs.aqua"
 
--- import Record from "@fluencelabs/registry/resources-api.aqua"
 import Record from "@fluencelabs/registry/registry-service.aqua"
 
 import "services.aqua"

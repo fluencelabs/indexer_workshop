@@ -84,37 +84,28 @@ func update_remote_index(cid: string, subnet: []Record) -> []Provider, []Provide
 func repair_from_index(cid: string, subnet: []Record):
     providers <- retrieve_index(cid, subnet)
 
-    statuses: *[]string
+    completed: *string
     absent, present <- whos_absent(cid, providers)
-    absents = ProviderOp.array_length(absent)
-    timeout = PARTICLE_TTL / 2 / absents
-    for s <- subnet par:
-        on s.peer_id via s.relay_id:
-            RemoteIndex s.service_id!
-            for a <- absent par:
-                success: *bool
-                for p <- present par:
-                    on a.peer_id:
-                        res <- Ipfs.get_from(cid, p.multiaddr)
-                        if res.success:
-                            Ipfs.put(res.path)
-                            success <<- true
+    timeout = PARTICLE_TTL / 2
 
-                status: *string
-                join success[0] -- wait for at least one success
-                par status <- Peer.timeout(timeout, "timed out")
-                status <<- "FAILED"
-                statuses <<- [a.peer_id, status[0]]
+    for a <- absent par:
+        success: *bool
+        -- download file from every 'present' peer in parallel
+        -- 'put' operation is idempotent; and we prioritize latency over resource
+        for p <- present par:
+            on a.peer_id:
+                res <- Ipfs.get_from(cid, p.multiaddr)
+                if res.success:
+                    Ipfs.put(res.path)
+                    success <<- true
 
-    join statuses[ProviderOp.array_length(absent)]
-    par Peer.timeout(PARTICLE_TTL / 3, "")
+        status: *string
+        join success[0] -- wait for at least one repair success
+        par Peer.timeout(timeout, "")
+        completed <<- a.peer_id
 
-    -- absent_after, present_after <- whos_absent(cid, providers)
-    -- -- now_absents <- ProviderOp.array_length(absent_after)
-    -- Console.print("was absent:")
-    -- Console.print(Debug.stringify(absents))
-    -- Console.print("now absent:")
-    -- Console.print(Debug.stringify(absent_after))
+    join completed[ProviderOp.array_length(absent)]
+    par Peer.timeout(timeout, "")
 
 -- upload file to all nodes in the Kademlia neighborhood
 func upload_to_peers(file: string, providers: []Record) -> string:

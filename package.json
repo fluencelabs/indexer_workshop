@@ -4,7 +4,7 @@
   "description": "",
   "scripts": {
     "subnet": "aqua run --verbose --timeout 60000 --log-level 'aquavm=off' -i src/aqua/ -f 'make_subnet_from_neighs()' --addr stage-02 --sk 'I8Sc2Nrd3qk0+l9yeuVPGv54cfOBFCKx9Ch0dOZ1MQ4=' --plugin src/plugins",
-    "upload": "aqua run --timeout 30000 --log-level 'aquavm=off'  -i src/aqua -f 'upload_to_subnet(\"/Users/folex/package-lock.json\")' --addr stage-02 --sk 'I8Sc2Nrd3qk0+l9yeuVPGv54cfOBFCKx9Ch0dOZ1MQ4=' --plugin src/plugins",
+    "upload": "aqua run --timeout 30000 --log-level 'aquavm=off'  -i src/aqua -f \"upload_to_subnet(\\\"$FILE\\\")\" --addr stage-02 --sk 'I8Sc2Nrd3qk0+l9yeuVPGv54cfOBFCKx9Ch0dOZ1MQ4=' --plugin src/plugins",
     "get_index": "aqua run --log-level 'aquavm=off' -i src/aqua -f \"get_domain_index(\\\"$CID\\\")\" --addr stage-02 --sk 'I8Sc2Nrd3qk0+l9yeuVPGv54cfOBFCKx9Ch0dOZ1MQ4=' --plugin src/plugins",
     "repair": "aqua run --log-level 'aquavm=off' -i src/aqua -f \"repair(\\\"$CID\\\")\" --addr stage-02 --sk 'I8Sc2Nrd3qk0+l9yeuVPGv54cfOBFCKx9Ch0dOZ1MQ4=' --plugin src/plugins",
     "absent": "aqua run --log-level 'aquavm=off' -i src/aqua -f \"absent(\\\"$CID\\\")\" --addr stage-02 --sk 'I8Sc2Nrd3qk0+l9yeuVPGv54cfOBFCKx9Ch0dOZ1MQ4=' --plugin src/plugins"

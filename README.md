@@ -1,4 +1,6 @@
 # Workshop
+Shining diagrams https://drive.google.com/file/d/1Sri578dBHUui5DJfht6RxcncX19MBybF/view?usp=sharing
+
 ## Experimenting on IPFS with Aqua
 ### What's the value?
 - Write, run and evolve distributed algorithms

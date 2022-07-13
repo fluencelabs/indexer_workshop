@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "subnet": "aqua run -i src/aqua/ -f 'make_subnet_from_neighs()' --addr stage-02 --sk 'I8Sc2Nrd3qk0+l9yeuVPGv54cfOBFCKx9Ch0dOZ1MQ4=' --plugin src/plugins --timeout 60000",
+    "subnet": "aqua run -i src/aqua/ -f 'make_subnet_from_neighs()' --addr stage-02 --sk 'I8Sc2Nrd3qk0+l9yeuVPGv54cfOBFCKx9Ch0dOZ1MQ4=' --plugin src/plugins --timeout 120000",
     "upload": "aqua run  -i src/aqua -f \"upload_to_subnet(\\\"$FILE\\\")\" --addr stage-02 --sk 'I8Sc2Nrd3qk0+l9yeuVPGv54cfOBFCKx9Ch0dOZ1MQ4=' --plugin src/plugins --timeout 30000",
     "get_index": "aqua run -i src/aqua -f \"get_domain_index(\\\"$CID\\\")\" --addr stage-02 --sk 'I8Sc2Nrd3qk0+l9yeuVPGv54cfOBFCKx9Ch0dOZ1MQ4=' --plugin src/plugins",
     "repair": "aqua run -i src/aqua -f \"repair(\\\"$CID\\\")\" --addr stage-02 --sk 'I8Sc2Nrd3qk0+l9yeuVPGv54cfOBFCKx9Ch0dOZ1MQ4=' --plugin src/plugins",

@@ -3,11 +3,11 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "subnet": "aqua run --verbose --timeout 60000 --log-level 'aquavm=off' -i src/aqua/ -f 'make_subnet_from_neighs()' --addr stage-02 --sk 'I8Sc2Nrd3qk0+l9yeuVPGv54cfOBFCKx9Ch0dOZ1MQ4=' --plugin src/plugins",
-    "upload": "aqua run --timeout 30000 --log-level 'aquavm=off'  -i src/aqua -f \"upload_to_subnet(\\\"$FILE\\\")\" --addr stage-02 --sk 'I8Sc2Nrd3qk0+l9yeuVPGv54cfOBFCKx9Ch0dOZ1MQ4=' --plugin src/plugins",
-    "get_index": "aqua run --log-level 'aquavm=off' -i src/aqua -f \"get_domain_index(\\\"$CID\\\")\" --addr stage-02 --sk 'I8Sc2Nrd3qk0+l9yeuVPGv54cfOBFCKx9Ch0dOZ1MQ4=' --plugin src/plugins",
-    "repair": "aqua run --log-level 'aquavm=off' -i src/aqua -f \"repair(\\\"$CID\\\")\" --addr stage-02 --sk 'I8Sc2Nrd3qk0+l9yeuVPGv54cfOBFCKx9Ch0dOZ1MQ4=' --plugin src/plugins",
-    "absent": "aqua run --log-level 'aquavm=off' -i src/aqua -f \"absent(\\\"$CID\\\")\" --addr stage-02 --sk 'I8Sc2Nrd3qk0+l9yeuVPGv54cfOBFCKx9Ch0dOZ1MQ4=' --plugin src/plugins"
+    "subnet": "aqua run -i src/aqua/ -f 'make_subnet_from_neighs()' --addr stage-02 --sk 'I8Sc2Nrd3qk0+l9yeuVPGv54cfOBFCKx9Ch0dOZ1MQ4=' --plugin src/plugins --timeout 60000",
+    "upload": "aqua run  -i src/aqua -f \"upload_to_subnet(\\\"$FILE\\\")\" --addr stage-02 --sk 'I8Sc2Nrd3qk0+l9yeuVPGv54cfOBFCKx9Ch0dOZ1MQ4=' --plugin src/plugins --timeout 30000",
+    "get_index": "aqua run -i src/aqua -f \"get_domain_index(\\\"$CID\\\")\" --addr stage-02 --sk 'I8Sc2Nrd3qk0+l9yeuVPGv54cfOBFCKx9Ch0dOZ1MQ4=' --plugin src/plugins",
+    "repair": "aqua run -i src/aqua -f \"repair(\\\"$CID\\\")\" --addr stage-02 --sk 'I8Sc2Nrd3qk0+l9yeuVPGv54cfOBFCKx9Ch0dOZ1MQ4=' --plugin src/plugins",
+    "absent": "aqua run -i src/aqua -f \"absent(\\\"$CID\\\")\" --addr stage-02 --sk 'I8Sc2Nrd3qk0+l9yeuVPGv54cfOBFCKx9Ch0dOZ1MQ4=' --plugin src/plugins"
   },
   "repository": {
     "type": "git",
@@ -20,9 +20,9 @@
   },
   "homepage": "https://github.com/fluencelabs/indexer_workshop#readme",
   "dependencies": {
-    "@fluencelabs/aqua": "0.7.4-329",
+    "@fluencelabs/aqua": "^0.7.4-331",
+    "@fluencelabs/aqua-ipfs": "0.5.5",
     "@fluencelabs/aqua-lib": "0.5.2",
-    "@fluencelabs/registry": "0.5.5",
-    "@fluencelabs/aqua-ipfs": "0.5.5"
+    "@fluencelabs/registry": "0.5.5"
   }
 }

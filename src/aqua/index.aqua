@@ -81,31 +81,37 @@ func update_remote_index(cid: string, subnet: []Record) -> []Provider, []Provide
     <- providers, providers_after
 
 -- replicate file to all nodes who has lost it
-func repair_from_index(cid: string, subnet: []Record):
+func repair_from_index(cid: string, subnet: []Record) -> string:
     providers <- retrieve_index(cid, subnet)
 
     completed: *string
     absent, present <- whos_absent(cid, providers)
+    absent_length <- ProviderOp.array_length(absent)
+    Console.print("absent:")
+    Console.print(Debug.stringify(absent_length))
+
     timeout = PARTICLE_TTL / 2
 
-    for a <- absent par:
-        success: *bool
-        -- download file from every 'present' peer in parallel
-        -- 'put' operation is idempotent; and we prioritize latency over resource
-        for p <- present par:
-            on a.peer_id:
-                res <- Ipfs.get_from(cid, p.multiaddr)
-                if res.success:
-                    Ipfs.put(res.path)
-                    success <<- true
+    if absent_length > 0:
+        for a <- absent par:
+            success: *bool
+            -- download file from every 'present' peer in parallel
+            -- 'put' operation is idempotent; and we prioritize latency over resource
+            for p <- present par:
+                on a.peer_id:
+                    res <- Ipfs.get_from(cid, p.multiaddr)
+                    if res.success:
+                        Ipfs.put(res.path)
+                        success <<- true
 
-        status: *string
-        join success[0] -- wait for at least one repair success
+            status: *string
+            join success[0] -- wait for at least one repair success
+            par Peer.timeout(timeout, "")
+            completed <<- a.peer_id
+
+        join completed[ProviderOp.array_length(absent) - 1]
         par Peer.timeout(timeout, "")
-        completed <<- a.peer_id
-
-    join completed[ProviderOp.array_length(absent)]
-    par Peer.timeout(timeout, "")
+    <- "OK"
 
 -- upload file to all nodes in the Kademlia neighborhood
 func upload_to_peers(file: string, providers: []Record) -> string:
@@ -115,13 +121,14 @@ func upload_to_peers(file: string, providers: []Record) -> string:
     uploaded: *[]string
     for p <- providers par:
         maddr <- get_multiaddr(p.peer_id)
-        upload(maddr, file)
+        try:
+            upload(maddr, file)
         if exists(maddr, cid):
             uploaded <<- [p.peer_id, maddr]
         else:
             ConsoleArray.print(["upload failed", p.peer_id, maddr])
 
-    join uploaded[ArrayOp.array_length(uploaded) - 1]
+    join uploaded[RecordOp.array_length(providers) - 1]
     par Peer.timeout(PARTICLE_TTL / 2, "")
 
     done: *bool

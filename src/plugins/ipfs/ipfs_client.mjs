@@ -20,25 +20,29 @@ export async function plugins() {
                 if (!existsSync(path)) { throw `file ${path} doesn't exist` };
                 const data = readFileSync(path);
                 const ipfs = await client(multiaddr);
-                const result = await ipfs.add(data, { pin: true });
-                const cid = result.path;
-                await ipfs.pin.add(cid);
-                console.log(`did pin ${cid} to ${multiaddr}`)
-
                 try {
-                    const pinned = await ipfs.pin.ls({ paths: cid, type: 'all' });
-                    for await (let r of pinned) {
-                        if (r.type === 'recursive') {
-                            console.log(`file ${cid} pinned to ${multiaddr}`);
-                        } else {
-                            console.log("pin result is strange", r);
-                        }
-                    };
-                } catch (err) {
-                    console.log(`file ${cid} failed to pin to ${multiaddr}`, err);
-                }
+                    const result = await ipfs.add(data, { pin: true });
+                    const cid = result.path;
+                    await ipfs.pin.add(cid);
+                    console.log(`did pin ${cid} to ${multiaddr}`)
 
-                return cid;
+                    try {
+                        const pinned = await ipfs.pin.ls({ paths: cid, type: 'all' });
+                        for await (let r of pinned) {
+                            if (r.type === 'recursive') {
+                                console.log(`file ${cid} pinned to ${multiaddr}`);
+                            } else {
+                                console.log("pin result is strange", r);
+                            }
+                        };
+                    } catch (err) {
+                        console.log(`file ${cid} failed to pin ls to ${multiaddr}`, err);
+                    }
+
+                    return cid;
+                } catch (err) {
+                    console.log(`file failed to upload`)
+                }
             },
             id: async (multiaddr) => {
                 const ipfs = await client(multiaddr);
@@ -56,7 +60,7 @@ export async function plugins() {
                     if (err.toString().includes(`is not pinned`)) {
                         exists = false
                     } else {
-                        throw err;
+                        // throw err;
                     }
                 }
                 return exists;
@@ -112,6 +116,9 @@ export async function plugins() {
                 const aft = after ? "is pinned still" : "isn't pinned anymore";
                 console.log(bef, aft, peer, res);
             }
+        },
+        list: {
+            get_random: (list) => { list[0] }
         }
     };
 }

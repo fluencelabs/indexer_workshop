@@ -35,7 +35,7 @@ func make_subnet_from_neighs():
 
     make_subnet(neighborhood)
 
-func upload_to_subnet(file: string):
+func upload_to_subnet(file: string) -> string:
     providers <- resolve_pinset(DOMAIN)
     if providers != nil:
         cid <- upload_to_peers(file, providers)
@@ -46,25 +46,29 @@ func upload_to_subnet(file: string):
     Console.print("indexed ipfs providers:")
     Console.print(Debug.stringify(ProviderOp.array_length(index)))
     Console.print(Debug.stringify(index))
+    <- "OK"
 
-func get_domain_index(cid: string):
+func get_domain_index(cid: string) -> string:
     Console.print(cid)
     providers <- resolve_pinset(DOMAIN)
     index <- retrieve_index(cid, providers)
     Console.print("indexed ipfs providers:")
     Console.print(Debug.stringify(ProviderOp.array_length(index)))
     for prov <- index:
-        Console.print(Debug.stringify([prov.peer_id, prov.multiaddr]))
+        s <- Debug.stringify(prov)
+        Console.print(s)
+    <- "OK"
 
-func repair(cid: string):
+func repair(cid: string) -> string:
     Console.print(cid)
     providers <- resolve_pinset(DOMAIN)
-    repair_from_index(cid, providers)
+    <- repair_from_index(cid, providers)
 
-func absent(cid: string):
+func absent(cid: string) -> string:
     Console.print(cid)
     providers <- resolve_pinset(DOMAIN)
     index <- retrieve_index(cid, providers)
     absent, present <- whos_absent(cid, index)
     Console.print("absent:")
     Console.print(Debug.stringify(absent))
+    <- "OK"
